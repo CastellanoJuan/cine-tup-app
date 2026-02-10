@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
 import 'dart:async';
 import 'dart:convert';
+import '../providers/movie_provider.dart'; 
 
 class MoviePage extends StatefulWidget {
   const MoviePage({super.key});
@@ -38,26 +40,18 @@ class _MoviePageState extends State<MoviePage> {
 
   Future<void> getPeliculas() async {
     try {
-      // Tu API Local
       final url = Uri.parse('http://localhost:3000/api/v1/movies');
-      print('Consultando API en: $url');
-
       final response = await http.get(url);
 
       if (!mounted) return;
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> decodedData = json.decode(response.body);
-        
         List<dynamic> results = [];
 
-        // --- CORRECCIÓN CLAVE AQUÍ ---
-        // Tu API devuelve { "status": "ok", "data": [...] }
         if (decodedData.containsKey('data')) {
           results = decodedData['data'];
-        } 
-        // Por si acaso alguna vez devuelve "results" (como TMDB original)
-        else if (decodedData.containsKey('results')) {
+        } else if (decodedData.containsKey('results')) {
           results = decodedData['results'];
         }
 
@@ -66,29 +60,26 @@ class _MoviePageState extends State<MoviePage> {
             movies = results.map((item) {
               return Movie(
                 title: item['title'] ?? 'Sin título',
-                // Tu API usa 'overview', lo mapeamos a description
-                description: item['overview'] ?? 'Sin descripción', 
-                // Tu API usa 'poster_path', lo mapeamos a posterPath
-                posterPath: item['poster_path'], 
-                // Aseguramos que sea double
+                description: item['overview'] ?? 'Sin descripción',
+                posterPath: item['poster_path'],
                 voteAverage: (item['vote_average'] ?? 0).toDouble(),
+                releaseDate: item['release_date'] ?? '',
+                // ✅ LÍNEA NUEVA: Leemos los géneros para que no falle
+                genreIds: List<int>.from(item['genre_ids'] ?? []), 
               );
             }).toList();
             
             filteredMovies = List.from(movies);
             isLoading = false;
           });
-          print('¡Películas cargadas: ${movies.length}!');
         } else {
-          print('La lista "data" estaba vacía.');
           setState(() => isLoading = false);
         }
       } else {
-        print('Error Servidor: Código ${response.statusCode}');
         setState(() => isLoading = false);
       }
     } catch (error) {
-      print('Error de Conexión: $error');
+      print('Error: $error');
       setState(() => isLoading = false);
     }
   }
@@ -99,6 +90,12 @@ class _MoviePageState extends State<MoviePage> {
       appBar: AppBar(
         title: const Text('Películas TUP'),
         backgroundColor: Colors.indigo,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.favorite),
+            onPressed: () => Navigator.pushNamed(context, '/favorites'),
+          )
+        ],
       ),
       body: Column(
         children: [
@@ -116,82 +113,54 @@ class _MoviePageState extends State<MoviePage> {
           Expanded(
             child: isLoading
                 ? const Center(child: CircularProgressIndicator())
-                : filteredMovies.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.movie_creation_outlined, size: 60, color: Colors.grey),
-                            const SizedBox(height: 10),
-                            const Text('No se encontraron películas.'),
-                            const SizedBox(height: 10),
-                            ElevatedButton(
-                              onPressed: getPeliculas, 
-                              child: const Text('Recargar')
-                            )
-                          ],
+                : ListView.builder(
+                    itemCount: filteredMovies.length,
+                    itemBuilder: (context, index) {
+                      final movie = filteredMovies[index];
+                      return Card(
+                        elevation: 4,
+                        margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.all(10),
+                          leading: movie.posterPath != null
+                              ? Image.network(
+                                  'https://image.tmdb.org/t/p/w200${movie.posterPath}',
+                                  width: 50, fit: BoxFit.cover,
+                                  errorBuilder: (ctx, err, stack) => const Icon(Icons.movie, size: 50),
+                                )
+                              : const Icon(Icons.movie, size: 50),
+                          title: Text(movie.title, style: const TextStyle(fontWeight: FontWeight.bold)),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(movie.description, maxLines: 2, overflow: TextOverflow.ellipsis),
+                              Row(children: [
+                                const Icon(Icons.star, size: 16, color: Colors.amber),
+                                Text(' ${movie.voteAverage}'),
+                              ]),
+                            ],
+                          ),
+                          trailing: Consumer<MovieProvider>(
+                            builder: (context, provider, child) {
+                              final isFav = provider.isFavorite(movie);
+                              return IconButton(
+                                icon: Icon(
+                                  isFav ? Icons.favorite : Icons.favorite_border,
+                                  color: isFav ? Colors.red : Colors.grey,
+                                ),
+                                onPressed: () {
+                                  provider.toggleFavorite(movie);
+                                },
+                              );
+                            },
+                          ),
                         ),
-                      )
-                    : ListView.builder(
-                        itemCount: filteredMovies.length,
-                        itemBuilder: (context, index) {
-                          final movie = filteredMovies[index];
-                          return Card(
-                            elevation: 4,
-                            margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                            child: ListTile(
-                              contentPadding: const EdgeInsets.all(10),
-                              leading: movie.posterPath != null
-                                  ? Image.network(
-                                      'https://image.tmdb.org/t/p/w200${movie.posterPath}',
-                                      width: 50,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (ctx, err, stack) => const Icon(Icons.broken_image, size: 50),
-                                    )
-                                  : const Icon(Icons.movie, size: 50),
-                              title: Text(
-                                movie.title,
-                                style: const TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                              subtitle: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    movie.description,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Row(
-                                    children: [
-                                      const Icon(Icons.star, size: 16, color: Colors.amber),
-                                      Text(' ${movie.voteAverage}'),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      ),
+                      );
+                    },
+                  ),
           ),
         ],
       ),
     );
   }
-}
-
-class Movie {
-  final String title;
-  final String description;
-  final String? posterPath;
-  final double voteAverage;
-
-  Movie({
-    required this.title,
-    required this.description,
-    this.posterPath,
-    required this.voteAverage,
-  });
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:async';
 import 'dart:convert';
+import 'MoviesByGenrePage.dart'; // Importamos la pantalla nueva
 
 class GenrePage extends StatefulWidget {
   const GenrePage({super.key});
@@ -11,7 +12,7 @@ class GenrePage extends StatefulWidget {
 }
 
 class _GenrePageState extends State<GenrePage> {
-  List<Genre> genres = [];
+  List<Map<String, dynamic>> genres = [];
   bool isLoading = true;
 
   @override
@@ -30,22 +31,30 @@ class _GenrePageState extends State<GenrePage> {
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : genres.isEmpty
-              ? const Center(
-                  child: Text(
-                    'No se encontraron géneros.',
-                    style: TextStyle(fontSize: 16),
-                  ),
-                )
+              ? const Center(child: Text('No hay géneros disponibles.'))
               : ListView.builder(
                   itemCount: genres.length,
                   itemBuilder: (context, index) {
                     final genre = genres[index];
                     return Card(
+                      elevation: 2,
                       margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                       child: ListTile(
                         leading: const Icon(Icons.category, color: Colors.indigo),
-                        title: Text(genre.name),
-                        subtitle: Text('ID: ${genre.id}'),
+                        title: Text(genre['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
+                        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                        onTap: () {
+                          // AL HACER CLIC: Navegamos a la lista filtrada
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => MoviesByGenrePage(
+                                genreId: genre['id'],
+                                genreName: genre['name'],
+                              ),
+                            ),
+                          );
+                        },
                       ),
                     );
                   },
@@ -55,45 +64,28 @@ class _GenrePageState extends State<GenrePage> {
 
   Future<void> getGenres() async {
     try {
-      // 1. CAMBIO IMPORTANTE: Apuntamos a /genres
       final url = Uri.parse('http://localhost:3000/api/v1/genres');
-      
       final response = await http.get(url);
 
-      if (!mounted) return;
-
       if (response.statusCode == 200) {
-        final Map<String, dynamic> decodedData = json.decode(response.body);
-        
-        // 2. CAMBIO IMPORTANTE: Leemos la lista "genres" que pusimos en el main.js
-        if (decodedData.containsKey('genres')) {
-          final List<dynamic> parsedResponse = decodedData['genres'];
+        final Map<String, dynamic> data = json.decode(response.body);
+        List<dynamic> results = [];
+
+        if (data.containsKey('genres')) results = data['genres'];
+        else if (data.containsKey('data')) results = data['data'];
           
-          setState(() {
-            genres = parsedResponse.map((genreData) {
-              return Genre(
-                id: genreData['id'],
-                name: genreData['name'],
-              );
-            }).toList();
-            isLoading = false;
-          });
-        } else {
-          setState(() => isLoading = false);
-        }
+        setState(() {
+          genres = results.map((g) => {
+            "id": g['id'],
+            "name": g['name']
+          }).toList().cast<Map<String, dynamic>>();
+          isLoading = false;
+        });
       } else {
-        if (mounted) setState(() => isLoading = false);
+        setState(() => isLoading = false);
       }
     } catch (error) {
-      print('Error en generos: $error');
-      if (mounted) setState(() => isLoading = false);
+      setState(() => isLoading = false);
     }
   }
-}
-
-class Genre {
-  final int id;
-  final String name;
-
-  Genre({required this.id, required this.name});
 }

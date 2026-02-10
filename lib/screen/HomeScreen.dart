@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/movie_provider.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    // Obtenemos el nombre del usuario desde el Provider
+    final username = context.watch<MovieProvider>().username;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Inicio'),
@@ -14,24 +19,16 @@ class HomeScreen extends StatelessWidget {
         child: ListView(
           padding: EdgeInsets.zero,
           children: <Widget>[
-            const DrawerHeader(
-              decoration: BoxDecoration(
-                color: Colors.indigo,
-              ),
+            DrawerHeader(
+              decoration: const BoxDecoration(color: Colors.indigo),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.movie_creation_outlined, color: Colors.white, size: 50),
-                  SizedBox(height: 10),
-                  Text(
-                    'Portal Cine',
-                    style: TextStyle(color: Colors.white, fontSize: 24),
-                  ),
-                  Text(
-                    'Alumno: Juan Castellano',
-                    style: TextStyle(color: Colors.white70, fontSize: 14),
-                  ),
+                  const Icon(Icons.movie_creation_outlined, color: Colors.white, size: 50),
+                  const SizedBox(height: 10),
+                  const Text('Portal Cine', style: TextStyle(color: Colors.white, fontSize: 24)),
+                  Text('Usuario: $username', style: const TextStyle(color: Colors.white70, fontSize: 14)),
                 ],
               ),
             ),
@@ -60,6 +57,20 @@ class HomeScreen extends StatelessWidget {
               title: const Text('Buscar por Año'),
               onTap: () => Navigator.pushNamed(context, '/year_search'),
             ),
+            const Divider(),
+            ListTile( // NUEVO: Favoritos
+              leading: const Icon(Icons.favorite, color: Colors.pink),
+              title: const Text('Mis Favoritos'),
+              onTap: () => Navigator.pushNamed(context, '/favorites'),
+            ),
+            ListTile( // NUEVO: Cerrar Sesión
+              leading: const Icon(Icons.logout, color: Colors.red),
+              title: const Text('Cerrar Sesión'),
+              onTap: () {
+                context.read<MovieProvider>().logout();
+                Navigator.pushReplacementNamed(context, '/');
+              },
+            ),
           ],
         ),
       ),
@@ -77,15 +88,12 @@ class HomeScreen extends StatelessWidget {
             children: [
               const Icon(Icons.movie, size: 100, color: Colors.indigo),
               const SizedBox(height: 20),
-              const Text(
-                'Bienvenido al Portal de Cine',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              Text(
+                'Hola, $username',
+                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 10),
-              const Text(
-                'API: Node.js (Express) - Render',
-                style: TextStyle(fontSize: 16, color: Colors.grey),
-              ),
+              const Text('Bienvenido al Portal de Cine', style: TextStyle(fontSize: 18)),
               const SizedBox(height: 40),
               ElevatedButton.icon(
                 icon: const Icon(Icons.play_arrow),

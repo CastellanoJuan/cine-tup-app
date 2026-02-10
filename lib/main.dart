@@ -1,25 +1,48 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/Screen/LoginScreen.dart';
-import 'package:flutter_application_1/Screen/MoviePage.dart';
-import 'package:flutter_application_1/Screen/GenrePage.dart';
-import 'package:flutter_application_1/Screen/TrendsPage.dart';
-import 'package:flutter_application_1/Screen/YearSearchPage.dart';
+import 'package:provider/provider.dart';
 
-import 'package:flutter_application_1/Screen/HomeScreen.dart';
-
+// Importamos tus pantallas
+import 'providers/movie_provider.dart';
+import 'Screen/LoginScreen.dart';
+import 'Screen/HomeScreen.dart';
+import 'Screen/MoviePage.dart';
+import 'Screen/TrendsPage.dart';
+import 'Screen/YearSearchPage.dart';
+import 'Screen/GenrePage.dart';
+import 'Screen/FavoritesPage.dart'; // LA CREAREMOS EN EL PASO 5
 
 void main() {
   runApp(
-    MaterialApp(
-      initialRoute: '/',
-      routes: {
-        '/': (context) => LoginScreen(),
-        '/home': (context) => HomeScreen(),
-        '/movies': (context) => MoviePage(),
-        '/genres': (context) => GenrePage(),
-        '/trends': (context) => TrendsPage(),
-        '/year_search': (context) => YearSearchPage(),
-      },
+    // Inyectamos el Provider en la raíz
+    ChangeNotifierProvider(
+      create: (_) => MovieProvider(),
+      child: const MyApp(),
     ),
   );
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'Cine TUP',
+      theme: ThemeData(
+        primarySwatch: Colors.indigo,
+        useMaterial3: true,
+      ),
+      initialRoute: '/',
+      routes: {
+        '/': (context) => const LoginScreen(),
+        '/home': (context) => const HomeScreen(),
+        '/movies': (context) => const MoviePage(),
+        '/trends': (context) => const TrendsPage(),
+        '/genres': (context) => const GenrePage(),
+        '/year_search': (context) => const YearSearchPage(),
+        '/favorites': (context) => const FavoritesPage(),
+      },
+    );
+  }
 }
