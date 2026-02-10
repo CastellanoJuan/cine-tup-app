@@ -17,5 +17,12 @@ Aplicación desarrollada en Flutter para el consumo de una API de películas (No
    flutter pub get
    flutter run
 
+## 🔗 Backend / API
+Esta aplicación consume una API desarrollada en Node.js.
+El código fuente de la API se encuentra en el siguiente repositorio:
+👉 https://github.com/CastellanoJuan/api-express-tup
+
+Para correr este proyecto, es necesario clonar el repositorio de la API e iniciarla en el puerto 3000.
+
 ## Autor
 Juan S Castellano
